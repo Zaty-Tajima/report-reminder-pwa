@@ -26,6 +26,8 @@
       <p>これはPWAの表示・ホーム画面追加を確認するためのテストです。</p>
       <p id="status">PWAの準備状態を確認しています…</p>
       <button id="testButton">テストボタン</button>
+      <button id="notifyButton">通知を許可する</button>
+      <p id="notifyStatus"></p>
       <p id="result"></p>
     </div>
   </main>
@@ -39,6 +41,20 @@
     }
     document.getElementById("testButton").addEventListener("click", () => {
       document.getElementById("result").textContent = "ボタンが動作しました！";
+    });
+    document.getElementById("notifyButton").addEventListener("click", async () => {
+      if (!("Notification" in window)) {
+        document.getElementById("notifyStatus").textContent =
+          "この環境では通知に対応していません";
+        return;
+      }
+    
+      const permission = await Notification.requestPermission();
+    
+      document.getElementById("notifyStatus").textContent =
+        permission === "granted"
+          ? "通知が許可されました！"
+          : "通知は許可されませんでした";
     });
   </script>
 </body>
