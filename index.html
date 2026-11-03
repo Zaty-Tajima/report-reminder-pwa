@@ -7,50 +7,115 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="報告リマインダー">
+
   <link rel="manifest" href="./manifest.json">
   <link rel="apple-touch-icon" href="./icon-180.png">
+
   <title>報告リマインダー PWAテスト</title>
+
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #f2f4f8; color: #172033; }
-    main { max-width: 520px; margin: 0 auto; padding: 28px 20px; }
-    .card { background: white; border-radius: 18px; padding: 24px; box-shadow: 0 4px 18px #0001; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      background: #f2f4f8;
+      color: #172033;
+    }
+
+    main {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 28px 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 4px 18px #0001;
+    }
+
     h1 { font-size: 24px; }
-    button { width: 100%; padding: 16px; margin: 10px 0; border: 0; border-radius: 12px; font-size: 17px; background: #2457d6; color: white; }
-    #status { padding: 12px; border-radius: 10px; background: #eef2ff; }
+
+    button {
+      width: 100%;
+      padding: 16px;
+      margin: 10px 0;
+      border: 0;
+      border-radius: 12px;
+      font-size: 17px;
+      background: #2457d6;
+      color: white;
+    }
+
+    #status {
+      padding: 12px;
+      border-radius: 10px;
+      background: #eef2ff;
+    }
   </style>
+
+  <!-- OneSignal SDK -->
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "e27a9e87-124d-47a6-bf14-4f0933a990d3",
+        serviceWorkerPath: "/report-reminder-pwa/OneSignalSDKWorker.js",
+        serviceWorkerParam: {
+          scope: "/report-reminder-pwa/"
+        }
+      });
+    });
+  </script>
 </head>
+
 <body>
   <main>
     <div class="card">
       <h1>報告リマインダー</h1>
-      <p>これはPWAの表示・ホーム画面追加を確認するためのテストです。</p>
-      <p id="status">PWAの準備状態を確認しています…</p>
+      <p>これはPWAの表示・通知テストです。</p>
+
+      <p id="status">OneSignalの準備中です…</p>
+
       <button id="testButton">テストボタン</button>
+      <p id="result"></p>
+
       <button id="notifyButton">通知を許可する</button>
       <p id="notifyStatus"></p>
-      <p id="result"></p>
     </div>
   </main>
+
   <script>
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js")
-        .then(() => document.getElementById("status").textContent = "Service Worker 登録済み")
-        .catch(() => document.getElementById("status").textContent = "Service Worker 登録に失敗しました");
-    } else {
-      document.getElementById("status").textContent = "この環境ではService Worker非対応です";
+      navigator.serviceWorker.register("./OneSignalSDKWorker.js", {
+        scope: "./"
+      })
+      .then(() => {
+        document.getElementById("status").textContent =
+          "Service Worker 登録済み";
+      })
+      .catch(error => {
+        document.getElementById("status").textContent =
+          "Service Worker 登録失敗: " + error;
+      });
     }
+
     document.getElementById("testButton").addEventListener("click", () => {
-      document.getElementById("result").textContent = "ボタンが動作しました！";
+      document.getElementById("result").textContent =
+        "ボタンが動作しました！";
     });
+
     document.getElementById("notifyButton").addEventListener("click", async () => {
       if (!("Notification" in window)) {
         document.getElementById("notifyStatus").textContent =
-          "この環境では通知に対応していません";
+          "通知に対応していません";
         return;
       }
-    
+
       const permission = await Notification.requestPermission();
-    
+
       document.getElementById("notifyStatus").textContent =
         permission === "granted"
           ? "通知が許可されました！"
