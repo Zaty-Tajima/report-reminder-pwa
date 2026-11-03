@@ -1,0 +1,16 @@
+{
+  "name": "報告リマインダー",
+  "short_name": "報告リマインダー",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f2f4f8",
+  "theme_color": "#172033",
+  "icons": [
+    {
+      "src": "./icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
