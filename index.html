@@ -1,21 +1,19 @@
-<!doctype html>
 
+<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <meta name="theme-color" content="#172033">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="報告リマインダー">
 
-
   <link rel="manifest" href="./manifest.json">
   <link rel="apple-touch-icon" href="./icon-180.png">
 
-
-  <title>報告リマインダー PWAテスト v0.1.5</title>
-
+  <title>報告リマインダー v0.1.6</title>
 
   <style>
     body {
@@ -40,6 +38,12 @@
 
     h1 {
       font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .version {
+      color: #64748b;
+      font-size: 13px;
     }
 
     button {
@@ -48,17 +52,24 @@
       margin: 10px 0;
       border: 0;
       border-radius: 12px;
-      font-size: 17px;
+      font-size: 16px;
       background: #2457d6;
       color: white;
+      cursor: pointer;
     }
 
     button:disabled {
       background: #999;
+      cursor: not-allowed;
+    }
+
+    .secondary {
+      background: #475569;
     }
 
     .status {
       padding: 12px;
+      margin: 12px 0;
       border-radius: 10px;
       background: #eef2ff;
       overflow-wrap: anywhere;
@@ -66,202 +77,464 @@
 
     .small {
       font-size: 13px;
-      color: #555;
+      color: #475569;
       overflow-wrap: anywhere;
+      line-height: 1.7;
+    }
+
+    details {
+      margin-top: 22px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 18px;
+    }
+
+    summary {
+      font-weight: bold;
+      cursor: pointer;
     }
   </style>
 
-
-  <!-- OneSignal SDK -->
-
-
+  <!-- OneSignal Web SDK v16 -->
   <script
     src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
     defer>
   </script>
-
-
-  <script>
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-
-    window.oneSignalInstance = null;
-
-    window.OneSignalDeferred.push(async function(OneSignal) {
-      try {
-        await OneSignal.init({
-          appId: "e27a9e87-124d-47a6-bf14-4f0933a990d3",
-          serviceWorkerPath: "/report-reminder-pwa/OneSignalSDKWorker.js",
-          serviceWorkerParam: {
-            scope: "/report-reminder-pwa/"
-          }
-        });
-
-        window.oneSignalInstance = OneSignal;
-
-        document.getElementById("sdkStatus").textContent =
-          "OneSignal SDK 初期化完了";
-
-        document.getElementById("notifyButton").disabled = false;
-
-        // 購読状態が変わった際に画面を更新
-        OneSignal.User.PushSubscription.addEventListener("change", function(event) {
-          const subscription = OneSignal.User.PushSubscription;
-
-          document.getElementById("subscriptionStatus").textContent =
-            "購読状態: " + subscription.optedIn;
-
-          document.getElementById("subscriptionId").textContent =
-            "購読ID: " + (subscription.id || "未発行");
-        });
-
-        updateSubscriptionStatus(OneSignal);
-
-      } catch (error) {
-        document.getElementById("sdkStatus").textContent =
-          "OneSignal初期化エラー: " + error.message;
-
-        console.error("OneSignal init error:", error);
-      }
-    });
-
-    function updateSubscriptionStatus(OneSignal) {
-      const subscription = OneSignal.User.PushSubscription;
-
-      document.getElementById("subscriptionStatus").textContent =
-        "購読状態: " + subscription.optedIn;
-
-      document.getElementById("subscriptionId").textContent =
-        "購読ID: " + (subscription.id || "未発行");
-    }
-  </script>
-
-
 </head>
-
 
 <body>
   <main>
     <div class="card">
-      <h1>報告リマインダー v0.1.5</h1>
 
+      <h1>報告リマインダー</h1>
+      <p class="version">Version 0.1.6</p>
 
-<p>OneSignal通知テスト用のページです。</p>
+      <p>OneSignalのプッシュ通知テスト用アプリです。</p>
 
-<p id="sdkStatus" class="status">
-OneSignal SDKを初期化しています…
-</p>
+      <p id="sdkStatus" class="status">
+        OneSignal SDKを読み込んでいます…
+      </p>
 
-<button id="testButton">
-テストボタン
-</button>
+      <button id="testButton">
+        テストボタン
+      </button>
 
-<p id="result"></p>
+      <p id="result" class="small"></p>
 
-<button id="notifyButton" disabled>
-通知を許可・購読登録する
-</button>
+      <button id="notifyButton" disabled>
+        通知を許可・購読登録する
+      </button>
 
-<p id="notifyStatus" class="status">
-まだ登録処理を行っていません。
-</p>
+      <p id="notifyStatus" class="status">
+        SDKの準備を待っています…
+      </p>
 
-<p id="subscriptionStatus" class="small">
-購読状態: 確認中
-</p>
+      <button id="refreshButton" class="secondary">
+        登録状態を再確認する
+      </button>
 
-<p id="subscriptionId" class="small">
-購読ID: 確認中
-</p>
+      <details open>
+        <summary>診断情報</summary>
 
-<p id="browserPermission" class="small">
-ブラウザ通知許可: 確認中
-</p>
-</div>
+        <p id="permissionStatus" class="small">
+          通知許可: 確認中
+        </p>
 
+        <p id="optedInStatus" class="small">
+          購読状態: 確認中
+        </p>
+
+        <p id="subscriptionId" class="small">
+          購読ID: 確認中
+        </p>
+
+        <p id="pushTokenStatus" class="small">
+          Push Token: 確認中
+        </p>
+
+        <p id="workerFileStatus" class="small">
+          Workerファイル: 確認中
+        </p>
+
+        <p id="workerRegistrationStatus" class="small">
+          Worker登録: 確認中
+        </p>
+
+        <p id="nativePushStatus" class="small">
+          ブラウザPush登録: 確認中
+        </p>
+      </details>
+
+    </div>
   </main>
 
-
   <script>
-    // ブラウザ通知許可の状態を表示
-    function updateBrowserPermission() {
-      if ("Notification" in window) {
-        document.getElementById("browserPermission").textContent =
-          "ブラウザ通知許可: " + Notification.permission;
-      } else {
-        document.getElementById("browserPermission").textContent =
-          "この環境は通知に対応していません";
-      }
+    // ========================================
+    // 基本設定
+    // ========================================
+
+    const APP_ID =
+      "e27a9e87-124d-47a6-bf14-4f0933a990d3";
+
+    const WORKER_PATH =
+      "/report-reminder-pwa/OneSignalSDKWorker.js";
+
+    const WORKER_SCOPE =
+      "/report-reminder-pwa/";
+
+    let oneSignal = null;
+
+    const el = (id) => document.getElementById(id);
+
+    function setText(id, text) {
+      el(id).textContent = text;
     }
 
-    updateBrowserPermission();
+    function errorText(error) {
+      return error?.message || String(error);
+    }
 
-    // 通常のテストボタン
-    document.getElementById("testButton").addEventListener("click", function() {
-      document.getElementById("result").textContent =
-        "テストボタンが動作しました！";
-    });
+    // ========================================
+    // 診断情報を更新
+    // ========================================
 
-    // OneSignal通知許可・購読登録
-    document.getElementById("notifyButton").addEventListener("click", async function() {
-      const notifyStatus = document.getElementById("notifyStatus");
-      const button = document.getElementById("notifyButton");
+    async function refreshStatus() {
 
-      const OneSignal = window.oneSignalInstance;
+      // 通知許可状態
+      if ("Notification" in window) {
+        setText(
+          "permissionStatus",
+          "通知許可: " + Notification.permission
+        );
+      } else {
+        setText(
+          "permissionStatus",
+          "通知許可: 非対応"
+        );
+      }
 
-      if (!OneSignal) {
-        notifyStatus.textContent =
-          "OneSignal SDKがまだ準備できていません。少し待ってから再度押してください。";
+      // OneSignalの購読状態
+      if (oneSignal) {
+        try {
+          const subscription =
+            oneSignal.User.PushSubscription;
+
+          setText(
+            "optedInStatus",
+            "購読状態: " + subscription.optedIn
+          );
+
+          setText(
+            "subscriptionId",
+            "購読ID: " + (subscription.id || "未発行")
+          );
+
+          setText(
+            "pushTokenStatus",
+            "Push Token: " +
+              (subscription.token ? "発行済み" : "未発行")
+          );
+
+        } catch (error) {
+          setText(
+            "optedInStatus",
+            "購読状態の取得エラー: " + errorText(error)
+          );
+        }
+      }
+
+      // Workerファイルが実際に存在するか確認
+      try {
+        const response = await fetch(WORKER_PATH, {
+          cache: "no-store"
+        });
+
+        setText(
+          "workerFileStatus",
+          "Workerファイル: HTTP " + response.status
+        );
+
+      } catch (error) {
+        setText(
+          "workerFileStatus",
+          "Workerファイル取得エラー: " + errorText(error)
+        );
+      }
+
+      // Service Worker登録状況を確認
+      if (!("serviceWorker" in navigator)) {
+        setText(
+          "workerRegistrationStatus",
+          "Worker登録: ブラウザ非対応"
+        );
         return;
       }
 
-      button.disabled = true;
-      notifyStatus.textContent = "通知許可を確認しています…";
-
       try {
-        // OneSignal SDKから通知許可をリクエスト
-        await OneSignal.Notifications.requestPermission();
+        const registrations =
+          await navigator.serviceWorker.getRegistrations();
 
-        updateBrowserPermission();
+        const expectedScope =
+          new URL(WORKER_SCOPE, location.origin).href;
 
-        if (Notification.permission !== "granted") {
-          notifyStatus.textContent =
-            "通知が許可されていません。iPhoneの設定を確認してください。";
+        const registration = registrations.find(
+          (r) => r.scope === expectedScope
+        );
+
+        if (!registration) {
+          setText(
+            "workerRegistrationStatus",
+            "Worker登録: 未登録"
+          );
+
+          setText(
+            "nativePushStatus",
+            "ブラウザPush登録: 未確認（Worker未登録）"
+          );
+
           return;
         }
 
-        notifyStatus.textContent =
-          "OneSignalに購読登録しています…";
+        const worker =
+          registration.active ||
+          registration.waiting ||
+          registration.installing;
 
-        // OneSignalのPush購読登録
-        await OneSignal.User.PushSubscription.optIn();
+        const actualScript =
+          worker?.scriptURL || "スクリプト確認中";
 
-        notifyStatus.textContent =
-          "購読登録処理を実行しました。IDの発行を確認しています…";
+        const expectedScript =
+          new URL(WORKER_PATH, location.origin).href;
 
-        updateSubscriptionStatus(OneSignal);
+        setText(
+          "workerRegistrationStatus",
+          actualScript === expectedScript
+            ? "Worker登録: 正常 (" + actualScript + ")"
+            : "Worker登録: パス要確認 (" + actualScript + ")"
+        );
+
+        // ブラウザ自身のPush登録を確認
+        if (registration.pushManager) {
+          const pushSubscription =
+            await registration.pushManager.getSubscription();
+
+          setText(
+            "nativePushStatus",
+            "ブラウザPush登録: " +
+              (pushSubscription ? "あり" : "なし")
+          );
+        } else {
+          setText(
+            "nativePushStatus",
+            "ブラウザPush登録: 非対応"
+          );
+        }
 
       } catch (error) {
-        notifyStatus.textContent =
-          "登録エラー: " + (error.message || error);
-
-        console.error("OneSignal subscription error:", error);
-
-      } finally {
-        button.disabled = false;
+        setText(
+          "workerRegistrationStatus",
+          "Worker確認エラー: " + errorText(error)
+        );
       }
+    }
+
+    // ========================================
+    // OneSignal SDK初期化
+    // ========================================
+
+    window.OneSignalDeferred =
+      window.OneSignalDeferred || [];
+
+    window.OneSignalDeferred.push(
+      async function(OneSignal) {
+
+        try {
+          setText(
+            "sdkStatus",
+            "OneSignal SDKを初期化しています…"
+          );
+
+          await OneSignal.init({
+            appId: "e27a9e87-124d-47a6-bf14-4f0933a990d3",
+
+            serviceWorkerPath: WORKER_PATH,
+
+            serviceWorkerParam: {
+              scope: WORKER_SCOPE
+            },
+
+            notifyButton: {
+              enable: false
+            }
+          });
+
+          oneSignal = OneSignal;
+
+          setText(
+            "sdkStatus",
+            "OneSignal SDK 初期化完了"
+          );
+
+          setText(
+            "notifyStatus",
+            "購読登録を実行できます。"
+          );
+
+          el("notifyButton").disabled = false;
+
+          // OneSignalの購読状態変更を監視
+          OneSignal.User.PushSubscription.addEventListener(
+            "change",
+            function() {
+              refreshStatus();
+            }
+          );
+
+          await refreshStatus();
+
+        } catch (error) {
+          setText(
+            "sdkStatus",
+            "OneSignal初期化エラー: " + errorText(error)
+          );
+
+          setText(
+            "notifyStatus",
+            "初期化に失敗しました。"
+          );
+
+          console.error(
+            "OneSignal initialization error:",
+            error
+          );
+
+          await refreshStatus();
+        }
+      }
+    );
+
+    // ========================================
+    // テストボタン
+    // ========================================
+
+    el("testButton").addEventListener("click", function() {
+      setText(
+        "result",
+        "テストボタンが正常に動作しました！"
+      );
     });
 
-    function updateSubscriptionStatus(OneSignal) {
-      const subscription = OneSignal.User.PushSubscription;
+    // ========================================
+    // 通知許可・購読登録ボタン
+    // ========================================
 
-      document.getElementById("subscriptionStatus").textContent =
-        "購読状態: " + subscription.optedIn;
+    el("notifyButton").addEventListener(
+      "click",
+      async function() {
 
-      document.getElementById("subscriptionId").textContent =
-        "購読ID: " + (subscription.id || "未発行");
-    }
+        if (!oneSignal) {
+          setText(
+            "notifyStatus",
+            "OneSignal SDKが準備できていません。"
+          );
+          return;
+        }
+
+        const button = el("notifyButton");
+        button.disabled = true;
+
+        try {
+          // 通知許可がなければ要求する
+          if (
+            "Notification" in window &&
+            Notification.permission !== "granted"
+          ) {
+            setText(
+              "notifyStatus",
+              "iPhoneの通知許可を確認しています…"
+            );
+
+            await oneSignal.Notifications.requestPermission();
+          }
+
+          if (
+            !("Notification" in window) ||
+            Notification.permission !== "granted"
+          ) {
+            setText(
+              "notifyStatus",
+              "通知が許可されていません。"
+            );
+            return;
+          }
+
+          // OneSignalの購読処理
+          setText(
+            "notifyStatus",
+            "OneSignalに購読登録しています…"
+          );
+
+          await oneSignal.User.PushSubscription.optIn();
+
+          await refreshStatus();
+
+          const subscription =
+            oneSignal.User.PushSubscription;
+
+          if (subscription.id) {
+            setText(
+              "notifyStatus",
+              "購読IDが発行されました。OneSignalで登録を確認してください。"
+            );
+          } else {
+            setText(
+              "notifyStatus",
+              "購読処理は終了しましたが、購読IDは未発行です。診断情報を確認してください。"
+            );
+          }
+
+        } catch (error) {
+          setText(
+            "notifyStatus",
+            "購読登録エラー: " + errorText(error)
+          );
+
+          console.error(
+            "OneSignal subscription error:",
+            error
+          );
+
+        } finally {
+          button.disabled = false;
+          await refreshStatus();
+        }
+      }
+    );
+
+    // ========================================
+    // 状態再確認ボタン
+    // ========================================
+
+    el("refreshButton").addEventListener(
+      "click",
+      async function() {
+
+        setText(
+          "notifyStatus",
+          "現在の状態を確認しています…"
+        );
+
+        await refreshStatus();
+
+        setText(
+          "notifyStatus",
+          "状態を更新しました。診断情報をご確認ください。"
+        );
+      }
+    );
+
+    // 初回の診断
+    refreshStatus();
+
   </script>
-
-
 </body>
 </html>
