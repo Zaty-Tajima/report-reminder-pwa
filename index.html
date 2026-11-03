@@ -108,18 +108,21 @@
     });
 
     document.getElementById("notifyButton").addEventListener("click", async () => {
-      if (!("Notification" in window)) {
-        document.getElementById("notifyStatus").textContent =
-          "通知に対応していません";
-        return;
-      }
-
-      const permission = await Notification.requestPermission();
-
       document.getElementById("notifyStatus").textContent =
-        permission === "granted"
-          ? "通知が許可されました！"
-          : "通知は許可されませんでした";
+        "OneSignalに登録しています…";
+    
+      try {
+        await OneSignal.User.PushSubscription.optIn();
+    
+        document.getElementById("notifyStatus").textContent =
+          "OneSignalへの登録処理が完了しました！";
+    
+        document.getElementById("status").textContent =
+          "購読ID: " + (OneSignal.User.PushSubscription.id || "登録処理中");
+      } catch (error) {
+        document.getElementById("notifyStatus").textContent =
+          "登録エラー: " + error;
+      }
     });
   </script>
 </body>
